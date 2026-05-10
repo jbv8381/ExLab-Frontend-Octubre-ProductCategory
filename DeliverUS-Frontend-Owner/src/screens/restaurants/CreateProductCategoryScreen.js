@@ -1,5 +1,89 @@
 import React, { useState, useEffect } from 'react'
 import { StyleSheet, FlatList, Pressable, View } from 'react-native'
+import { create } from '../../api/CategoriesEndpoints'
+import * as yup from 'yup'
+import { ErrorMessage, Formik } from 'formik'
+import TextError from '../../components/TextError'
+import InputItem from '../../components/InputItem'
+import TextRegular from '../../components/TextRegular'
+import { MaterialCommunityIcons } from '@expo/vector-icons'
+import * as GlobalStyles from '../../styles/GlobalStyles'
+import { showMessage } from 'react-native-flash-message'
+import { ScrollView } from 'react-native'
+
+export default function CreateProductCategoryScreen({ navigation, route }) {
+  const [backendErrors, setBackendErrors] = useState()
+
+  const initialProductCategoryValues = { name: null , restaurantId: route.params.id} 
+  const validationSchema = yup.object().shape({
+    name: yup
+      .string()
+      .max(255, 'Name too long')
+      .required('Name is required'),
+  })
+
+
+  const createProductCategory = async (values) => {
+    setBackendErrors([])
+    try {
+      const createdProductCategory = await create( route.params.id, values)
+      showMessage({
+        message: `Product Category succesfully created`,
+        type: 'success',
+        style: GlobalStyles.flashStyle,
+        titleStyle: GlobalStyles.flashTextStyle
+      })
+      navigation.navigate('ProductCategoriesScreen', { id: route.params.id, dirty: true })
+    } catch (error) {
+      console.log(error)
+      setBackendErrors(error.errors)
+    }
+  }
+  return (
+    <Formik
+      validationSchema={validationSchema}
+      initialValues={initialProductCategoryValues}
+      onSubmit={createProductCategory}>
+      {({ handleSubmit, setFieldValue, values }) => (
+        <ScrollView>
+          <View style={{ alignItems: 'center' }}>
+            <View style={{ width: '60%' }}>
+              <InputItem
+                name='name'
+                label='Name:'
+              />
+
+              {backendErrors &&
+                backendErrors.map((error, index) => <TextError key={index}>{error.param}-{error.msg}</TextError>)
+              }
+              
+              <Pressable
+                onPress={handleSubmit}
+                style={({ pressed }) => [
+                  {
+                    backgroundColor: pressed
+                      ? GlobalStyles.brandSuccessTap
+                      : GlobalStyles.brandSuccess
+                  },
+                  styles.button
+                ]}>
+                <View style={[{ flex: 1, flexDirection: 'row', justifyContent: 'center' }]}>
+                  <MaterialCommunityIcons name='content-save' color={'white'} size={20} />
+                  <TextRegular textStyle={styles.text}>
+                    Save
+                  </TextRegular>
+                </View>
+              </Pressable>
+            </View>
+          </View>
+        </ScrollView>
+      )}
+    </Formik>
+  )
+
+
+
+}
 
 const styles = StyleSheet.create({
   button: {
